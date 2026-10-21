@@ -1,0 +1,10 @@
+{
+  "name": "bondroom",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An agentic dating network prototype",
+  "scripts": {
+    "dev": "node server.cjs",
+    "start": "node server.cjs"
+  }
+}
