@@ -70,11 +70,11 @@ async function aiDate(personA, personB) {
         ]
       })
     });
-    if (!response.ok) return null;
+    if (!response.ok) return { __providerError: `http_${response.status}` };
     const payload = await response.json();
     const content = payload.choices?.[0]?.message?.content;
     const parsed = parseModelJson(content);
-    if (!parsed || !Array.isArray(parsed.messages) || parsed.messages.length < 4) return null;
+    if (!parsed || !Array.isArray(parsed.messages) || parsed.messages.length < 4) return { __providerError: payload.choices?.[0]?.finish_reason === 'length' ? 'max_tokens_or_reasoning_budget' : 'empty_or_invalid_json' };
     const messages = parsed.messages.slice(0, 6).map((message, index) => ({
       speaker: message.speaker === 'b' ? 'b' : index % 2 === 0 ? 'a' : 'b',
       text: String(message.text || '').trim().slice(0, 320)
@@ -86,8 +86,8 @@ async function aiDate(personA, personB) {
       messages,
       read: String(parsed.read || 'Their agents found a specific spark worth a second conversation.').slice(0, 300)
     };
-  } catch {
-    return null;
+  } catch (error) {
+    return { __providerError: error.name === 'AbortError' ? 'timeout' : 'network_error' };
   } finally {
     clearTimeout(timer);
   }
@@ -103,7 +103,9 @@ async function handler(req, res) {
   const personA = safePerson(body.personA);
   const personB = safePerson(body.personB);
   const aiResult = await aiDate(personA, personB);
-  const result = aiResult || fallbackDate(personA, personB, getApiKey() ? 'fallback:provider-error' : 'fallback:missing-key');
+  const providerError = aiResult?.__providerError;
+  const result = providerError ? fallbackDate(personA, personB, getApiKey() ? 'fallback:provider-error' : 'fallback:missing-key') : (aiResult || fallbackDate(personA, personB, getApiKey() ? 'fallback:provider-error' : 'fallback:missing-key'));
+  if (providerError) result.diagnostic = providerError;
   res.statusCode = 200;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.end(JSON.stringify(result));
