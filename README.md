@@ -1,4 +1,4 @@
-# bondroom
+# Bondroom
 
 An agentic dating network demo: each person has an agent, each agent is given exactly two public links (LinkedIn + Instagram), and the agents do the first conversation before a human does.
 
